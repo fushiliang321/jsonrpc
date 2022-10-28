@@ -1,4 +1,4 @@
-package go_jsonrpc
+package jsonrpc
 
 import (
 	"errors"

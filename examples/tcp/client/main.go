@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	go_jsonrpc "github.com/fushiliang321/jsonrpc"
+	"github.com/fushiliang321/jsonrpc"
 )
 
 type Params struct {
@@ -18,7 +18,7 @@ type Result2 struct {
 
 func main() {
 	result1 := new(Result)
-	c, _ := go_jsonrpc.NewClient("tcp", "127.0.0.1", "3232")
+	c, _ := jsonrpc.NewClient("tcp", "127.0.0.1", "3232")
 	err1 := c.Call("IntRpc/Add", Params{1, 6}, result1, false) // or "int_rpc/Add", "int_rpc.Add", "IntRpc.Add"
 	// data sent: {"id":"1604283212","jsonrpc":"2.0","method":"IntRpc/Add","params":{"a":1,"b":6}}
 	// data received: {"id":"1604283212","jsonrpc":"2.0","result":7}

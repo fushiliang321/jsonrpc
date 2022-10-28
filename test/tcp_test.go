@@ -2,7 +2,7 @@ package test
 
 import (
 	"fmt"
-	go_jsonrpc "github.com/fushiliang321/jsonrpc"
+	"github.com/fushiliang321/jsonrpc"
 	"github.com/fushiliang321/jsonrpc/common"
 	"testing"
 	"time"
@@ -10,12 +10,12 @@ import (
 
 func TestTcpCall(t *testing.T) {
 	go func() {
-		s, _ := go_jsonrpc.NewServer("tcp", "127.0.0.1", "3234")
+		s, _ := jsonrpc.NewServer("tcp", "127.0.0.1", "3234")
 		s.Register(new(IntRpc))
 		s.Start()
 	}()
 	time.Sleep(time.Duration(2) * time.Second)
-	s, _ := go_jsonrpc.NewClient("tcp", "127.0.0.1", "3234")
+	s, _ := jsonrpc.NewClient("tcp", "127.0.0.1", "3234")
 	params := Params{1, 2}
 	result := new(Result)
 	s.Call("IntRpc.Add", &params, result, false)
@@ -27,12 +27,12 @@ func TestTcpCall(t *testing.T) {
 
 func TestTcpCallMethod(t *testing.T) {
 	go func() {
-		s, _ := go_jsonrpc.NewServer("tcp", "127.0.0.1", "3239")
+		s, _ := jsonrpc.NewServer("tcp", "127.0.0.1", "3239")
 		s.Register(new(IntRpc))
 		s.Start()
 	}()
 	time.Sleep(time.Duration(2) * time.Second)
-	c, _ := go_jsonrpc.NewClient("tcp", "127.0.0.1", "3239")
+	c, _ := jsonrpc.NewClient("tcp", "127.0.0.1", "3239")
 	params := Params{1, 2}
 	result := new(Result)
 	c.Call("int_rpc/Add", &params, result, false)
@@ -43,12 +43,12 @@ func TestTcpCallMethod(t *testing.T) {
 
 func TestTcpNotifyCall(t *testing.T) {
 	go func() {
-		s, _ := go_jsonrpc.NewServer("tcp", "127.0.0.1", "3235")
+		s, _ := jsonrpc.NewServer("tcp", "127.0.0.1", "3235")
 		s.Register(new(IntRpc))
 		s.Start()
 	}()
 	time.Sleep(time.Duration(2) * time.Second)
-	s, _ := go_jsonrpc.NewClient("tcp", "127.0.0.1", "3235")
+	s, _ := jsonrpc.NewClient("tcp", "127.0.0.1", "3235")
 	params := Params{2, 3}
 	result := new(Result)
 	s.Call("IntRpc.Add", &params, result, true)
@@ -59,12 +59,12 @@ func TestTcpNotifyCall(t *testing.T) {
 
 func TestTcpBatchCall(t *testing.T) {
 	go func() {
-		s, _ := go_jsonrpc.NewServer("tcp", "127.0.0.1", "3237")
+		s, _ := jsonrpc.NewServer("tcp", "127.0.0.1", "3237")
 		s.Register(new(IntRpc))
 		s.Start()
 	}()
 	time.Sleep(time.Duration(2) * time.Second)
-	c, _ := go_jsonrpc.NewClient("tcp", "127.0.0.1", "3237")
+	c, _ := jsonrpc.NewClient("tcp", "127.0.0.1", "3237")
 
 	result1 := new(Result)
 	err1 := c.BatchAppend("IntRpc/Add1", Params{1, 6}, result1, false)
