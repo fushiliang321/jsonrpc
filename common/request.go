@@ -170,22 +170,22 @@ func GetStruct(d interface{}, s interface{}) error {
 	var jsonMap = make(map[string]interface{})
 	switch reflect.TypeOf(d).Kind() {
 	case reflect.Map:
-		if t.NumField() != len(d.(map[string]interface{})) {
-			m = fmt.Sprintf("json: The number of parameters does not match")
-			Debug(m)
-			return errors.New(m)
-		}
-		for k := 0; k < t.NumField(); k++ {
-			lk := t.Field(k).Tag.Get("json")
-			if lk == "" {
-				lk = t.Field(k).Name
-			}
-			if _, ok := d.(map[string]interface{})[lk]; ok != true {
-				m = fmt.Sprintf("json: can not find field \"%s\"", lk)
-				Debug(m)
-				return errors.New(m)
-			}
-		}
+		//if t.NumField() != len(d.(map[string]interface{})) {
+		//	m = fmt.Sprintf("json: The number of parameters does not match")
+		//	Debug(m)
+		//	return errors.New(m)
+		//}
+		//for k := 0; k < t.NumField(); k++ {
+		//	 lk :=t.Field(k).Tag.Get("json")
+		//	if lk=="" {
+		//		lk = t.Field(k).Name
+		//	}
+		//	if _, ok := d.(map[string]interface{})[lk]; ok != true {
+		//		m = fmt.Sprintf("json: can not find field \"%s\"", lk)
+		//		Debug(m)
+		//		return errors.New(m)
+		//	}
+		//}
 		jsonMap = d.(map[string]interface{})
 		break
 	case reflect.Slice:
