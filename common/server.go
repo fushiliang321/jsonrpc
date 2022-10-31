@@ -57,7 +57,7 @@ func RegisterMethod(rm reflect.Method) *Method {
 	)
 	rmt := rm.Type
 	rmn := rm.Name
-	if rm.Type.NumIn() != 3 {
+	if rm.Type.NumIn() != 2 {
 		msg = fmt.Sprintf("RegisterMethod: method %q has %d input parameters; needs exactly three", rmn, rmt.NumIn())
 		Debug(msg)
 		return nil
@@ -68,21 +68,21 @@ func RegisterMethod(rm reflect.Method) *Method {
 		Debug(msg)
 		return nil
 	}
-	r := rmt.In(2)
-	if r.Kind() != reflect.Ptr {
-		msg = fmt.Sprintf("RegisterMethod: Result type of method %q is not a reflect.Ptr:%q", rmn, r)
-		Debug(msg)
-		return nil
-	}
 
-	if rm.Type.NumOut() != 1 {
+	if rm.Type.NumOut() != 2 {
 		msg = fmt.Sprintf("RegisterMethod: Method %q has %d output parameters; needs exactly one", rmn, rmt.NumOut())
 		Debug(msg)
 		return nil
 	}
-	ret := rmt.Out(0)
+	r := rmt.Out(0)
+	if r.Kind() != reflect.Ptr {
+		msg = fmt.Sprintf("RegisterMethod: Return Result type of method %q is not a reflect.Ptr:%q", rmn, r)
+		Debug(msg)
+		return nil
+	}
+	ret := rmt.Out(1)
 	if ret != reflect.TypeOf((*error)(nil)).Elem() {
-		msg = fmt.Sprintf("RegisterMethod: Return type of method %q is not a must be error:%q", rmn, ret)
+		msg = fmt.Sprintf("RegisterMethod: Return Error type of method %q is not a must be error:%q", rmn, ret)
 		Debug(msg)
 		return nil
 	}
@@ -144,12 +144,12 @@ func (svr *Server) SingleHandler(jsonMap map[string]interface{}) interface{} {
 	if err != nil {
 		return E(id, jsonRpc, InvalidParams)
 	}
-	result := reflect.New(m.ResultType.Elem())
-	r := m.Method.Func.Call([]reflect.Value{s.(*Service).V, params, result})
-	if i := r[0].Interface(); i != nil {
+	r := m.Method.Func.Call([]reflect.Value{s.(*Service).V, params})
+	if i := r[1].Interface(); i != nil {
 		Debug(i.(error))
 		return E(id, jsonRpc, InternalError)
 	}
+	result := r[0]
 	return S(id, jsonRpc, result.Elem().Interface())
 }
 
