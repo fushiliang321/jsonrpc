@@ -7,6 +7,7 @@ const (
 	MethodNotFound = -32601
 	InvalidParams  = -32602
 	InternalError  = -32603
+	InternalPanic  = -32604
 )
 
 var CodeMap = map[int]string{
@@ -15,4 +16,5 @@ var CodeMap = map[int]string{
 	MethodNotFound: "Method not found",
 	InvalidParams:  "Invalid params",
 	InternalError:  "Internal error",
+	InternalPanic:  "Internal panic",
 }

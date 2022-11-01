@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"runtime"
 	"strings"
 	"sync"
 )
@@ -54,22 +55,27 @@ func RegisterMethods(s reflect.Type) map[string]*Method {
 func RegisterMethod(rm reflect.Method) *Method {
 	var (
 		msg string
+		p   reflect.Type
 	)
 	rmt := rm.Type
 	rmn := rm.Name
-	if rm.Type.NumIn() != 2 {
+	numIn := rm.Type.NumIn()
+	if numIn > 2 {
 		msg = fmt.Sprintf("RegisterMethod: method %q has %d input parameters; needs exactly three", rmn, rmt.NumIn())
 		Debug(msg)
 		return nil
 	}
-	p := rmt.In(1)
-	if p.Kind() != reflect.Ptr {
-		msg = fmt.Sprintf("RegisterMethod: Params type of method %q is not a reflect.Ptr:%q", rmn, p)
-		Debug(msg)
-		return nil
+	if numIn == 2 {
+		//参数是可以省略的
+		p = rmt.In(1)
+		if p.Kind() != reflect.Ptr {
+			msg = fmt.Sprintf("RegisterMethod: Params type of method %q is not a reflect.Ptr:%q", rmn, p)
+			Debug(msg)
+			return nil
+		}
 	}
-
-	if rm.Type.NumOut() != 2 {
+	numOut := rm.Type.NumOut()
+	if numOut > 2 || numOut == 0 {
 		msg = fmt.Sprintf("RegisterMethod: Method %q has %d output parameters; needs exactly one", rmn, rmt.NumOut())
 		Debug(msg)
 		return nil
@@ -80,11 +86,14 @@ func RegisterMethod(rm reflect.Method) *Method {
 		Debug(msg)
 		return nil
 	}
-	ret := rmt.Out(1)
-	if ret != reflect.TypeOf((*error)(nil)).Elem() {
-		msg = fmt.Sprintf("RegisterMethod: Return Error type of method %q is not a must be error:%q", rmn, ret)
-		Debug(msg)
-		return nil
+	if numOut == 2 {
+		//返回的错误可以省略
+		ret := rmt.Out(1)
+		if ret != reflect.TypeOf((*error)(nil)).Elem() {
+			msg = fmt.Sprintf("RegisterMethod: Return Error type of method %q is not a must be error:%q", rmn, ret)
+			Debug(msg)
+			return nil
+		}
 	}
 	m := &Method{rmn, p, r, rm}
 	return m
@@ -114,8 +123,15 @@ func (svr *Server) Handler(b []byte) []byte {
 	return response
 }
 
-func (svr *Server) SingleHandler(jsonMap map[string]interface{}) interface{} {
+func (svr *Server) SingleHandler(jsonMap map[string]interface{}) (res interface{}) {
 	id, jsonRpc, method, paramsData, errCode := ParseSingleRequestBody(jsonMap)
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println(err)
+			printTrace(3)
+			res = E(id, jsonRpc, InternalPanic)
+		}
+	}()
 	if errCode != WithoutError {
 		return E(id, jsonRpc, errCode)
 	}
@@ -138,16 +154,25 @@ func (svr *Server) SingleHandler(jsonMap map[string]interface{}) interface{} {
 	if !ok {
 		return E(id, jsonRpc, MethodNotFound)
 	}
-	params := reflect.New(m.ParamsType.Elem())
-	pv := params.Interface()
-	err = GetStruct(paramsData, pv)
-	if err != nil {
-		return E(id, jsonRpc, InvalidParams)
+	var r []reflect.Value
+	if m.ParamsType == nil {
+		//参数是可以省略的
+		r = m.Method.Func.Call([]reflect.Value{s.(*Service).V})
+	} else {
+		params := reflect.New(m.ParamsType.Elem())
+		pv := params.Interface()
+		err = GetStruct(paramsData, pv)
+		if err != nil {
+			return E(id, jsonRpc, InvalidParams)
+		}
+		r = m.Method.Func.Call([]reflect.Value{s.(*Service).V, params})
 	}
-	r := m.Method.Func.Call([]reflect.Value{s.(*Service).V, params})
-	if i := r[1].Interface(); i != nil {
-		Debug(i.(error))
-		return E(id, jsonRpc, InternalError)
+	if len(r) > 1 {
+		//返回的错误可以省略
+		if i := r[1].Interface(); i != nil {
+			Debug(i.(error))
+			return E(id, jsonRpc, InternalError)
+		}
 	}
 	result := r[0]
 	return S(id, jsonRpc, result.Elem().Interface())
@@ -177,4 +202,20 @@ func Capitalize(str string) string {
 		}
 	}
 	return upperStr
+}
+
+func printTrace(skip int) {
+	pcs := make([]uintptr, 10)
+	if skip < 0 {
+		skip = 2
+	}
+	n := runtime.Callers(skip, pcs)
+	for i := 0; i < n; i++ {
+		pc := pcs[i]
+		fn := runtime.FuncForPC(pc)
+		fname := fn.Name()
+		file, line := fn.FileLine(pc)
+		fmt.Printf("%s:%d %s \n", file, line, fname)
+	}
+	return
 }
