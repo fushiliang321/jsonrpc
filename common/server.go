@@ -179,11 +179,11 @@ func (svr *Server) SingleHandler(jsonMap map[string]interface{}) (res interface{
 			switch res.(type) {
 			case ErrorResponse:
 				_res := res.(ErrorResponse)
-				_res.Error.Data = internalErrorData.Data
+				_res.Error.Data = internalErrorData
 				res = _res
 			case ErrorNotifyResponse:
 				_res := res.(ErrorNotifyResponse)
-				_res.Error.Data = internalErrorData.Data
+				_res.Error.Data = internalErrorData
 				res = _res
 			}
 			return
