@@ -127,7 +127,6 @@ func (svr *Server) SingleHandler(jsonMap map[string]interface{}) (res interface{
 	id, jsonRpc, method, paramsData, errCode := ParseSingleRequestBody(jsonMap)
 	defer func() {
 		if err := recover(); err != nil {
-			fmt.Println(err)
 			printTrace(3)
 			res = E(id, jsonRpc, InternalPanic)
 		}
@@ -170,8 +169,22 @@ func (svr *Server) SingleHandler(jsonMap map[string]interface{}) (res interface{
 	if len(r) > 1 {
 		//返回的错误可以省略
 		if i := r[1].Interface(); i != nil {
-			Debug(i.(error))
-			return E(id, jsonRpc, InternalError)
+			Debug(i)
+			res = E(id, jsonRpc, InternalError)
+			var internalErrorData InternalErr
+			internalErrorData, ok = i.(InternalErr)
+			if !ok {
+				return
+			}
+			switch res.(type) {
+			case ErrorResponse:
+				res := res.(ErrorResponse)
+				res.Error.Data = internalErrorData
+			case ErrorNotifyResponse:
+				res := res.(ErrorNotifyResponse)
+				res.Error.Data = internalErrorData
+			}
+			return
 		}
 	}
 	result := r[0]

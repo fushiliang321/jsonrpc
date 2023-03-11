@@ -10,6 +10,22 @@ const (
 	InternalPanic  = -32604
 )
 
+type InternalErr struct {
+	Data any
+	Text string
+}
+
+func (e InternalErr) Error() string {
+	return e.Text
+}
+
+func NewInternalErr(text string, data any) *InternalErr {
+	return &InternalErr{
+		Text: text,
+		Data: data,
+	}
+}
+
 var CodeMap = map[int]string{
 	ParseError:     "Parse error",
 	InvalidRequest: "Invalid request",

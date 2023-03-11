@@ -16,15 +16,13 @@ func NewClient(protocol string, ip string, port string) (ClientInterface, error)
 	switch protocol {
 	case "http":
 		return &client.Http{
-			ip,
-			port,
-			nil,
+			Ip:   ip,
+			Port: port,
 		}, err
 	case "tcp":
 		return &client.Tcp{
-			ip,
-			port,
-			nil,
+			Ip:   ip,
+			Port: port,
 		}, err
 	}
 	return nil, errors.New("The protocol can not be supported")
