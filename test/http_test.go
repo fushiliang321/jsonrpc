@@ -32,7 +32,7 @@ func TestHttpCall(t *testing.T) {
 	c, _ := jsonrpc.NewClient("http", "127.0.0.1", "3232")
 	params := Params{1, 2}
 	result := new(Result)
-	c.Call("IntRpc.Add", &params, result, false)
+	c.Call("IntRpc.Add", &params, result, false, nil)
 	if *result != 3 {
 		t.Errorf("%d + %d expected be %d, but %d got", params.A, params.B, 3, *result)
 	}
@@ -48,7 +48,7 @@ func TestHttpCallMethod(t *testing.T) {
 	c, _ := jsonrpc.NewClient("http", "127.0.0.1", "3238")
 	params := Params{1, 2}
 	result := new(Result)
-	c.Call("int_rpc/Add", &params, result, false)
+	c.Call("int_rpc/Add", &params, result, false, nil)
 	if *result != 3 {
 		t.Errorf("%d + %d expected be %d, but %d got", params.A, params.B, 3, *result)
 	}
@@ -64,7 +64,7 @@ func TestHttpNotifyCall(t *testing.T) {
 	c, _ := jsonrpc.NewClient("http", "127.0.0.1", "3233")
 	params := Params{2, 3}
 	result := new(Result)
-	c.Call("IntRpc.Add", &params, result, true)
+	c.Call("IntRpc.Add", &params, result, true, nil)
 	if *result != 5 {
 		t.Errorf("%d + %d expected be %d, but %d got", params.A, params.B, 5, *result)
 	}
@@ -80,9 +80,9 @@ func TestHttpBatchCall(t *testing.T) {
 	c, _ := jsonrpc.NewClient("http", "127.0.0.1", "3236")
 
 	result1 := new(Result)
-	err1 := c.BatchAppend("IntRpc/Add1", Params{1, 6}, result1, false)
+	err1 := c.BatchAppend("IntRpc/Add1", Params{1, 6}, result1, false, nil)
 	result2 := new(Result)
-	err2 := c.BatchAppend("IntRpc/Add", Params{2, 3}, result2, false)
+	err2 := c.BatchAppend("IntRpc/Add", Params{2, 3}, result2, false, nil)
 	c.BatchCall()
 
 	if *err2 != nil || *result2 != 5 {
