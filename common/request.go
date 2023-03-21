@@ -18,6 +18,7 @@ var RequiredFields = map[string]string{
 	"jsonrpc": "jsonrpc",
 	"method":  "method",
 	"params":  "params",
+	"context": "context",
 }
 
 type SingleRequest struct {
@@ -26,6 +27,7 @@ type SingleRequest struct {
 	Result   interface{}
 	Error    *error
 	IsNotify bool
+	Context  interface{}
 }
 
 type Request struct {
@@ -33,12 +35,14 @@ type Request struct {
 	JsonRpc string      `json:"jsonrpc"`
 	Method  string      `json:"method"`
 	Params  interface{} `json:"params"`
+	Context interface{} `json:"context,omitempty"`
 }
 
 type NotifyRequest struct {
 	JsonRpc string      `json:"jsonrpc"`
 	Method  string      `json:"method"`
 	Params  interface{} `json:"params"`
+	Context interface{} `json:"context,omitempty"`
 }
 
 func GetRequestBody(b []byte) interface{} {
@@ -208,18 +212,18 @@ func GetStruct(d interface{}, s interface{}) error {
 	return nil
 }
 
-func Rs(id interface{}, method string, params interface{}) interface{} {
+func Rs(id interface{}, method string, params interface{}, context interface{}) interface{} {
 	var req interface{}
 	if id != nil {
-		req = Request{id.(string), JsonRpc, method, params}
+		req = Request{id.(string), JsonRpc, method, params, context}
 	} else {
-		req = NotifyRequest{JsonRpc, method, params}
+		req = NotifyRequest{JsonRpc, method, params, context}
 	}
 	return req
 }
 
-func JsonRs(id interface{}, method string, params interface{}) []byte {
-	e, _ := json.Marshal(Rs(id, method, params))
+func JsonRs(id interface{}, method string, params interface{}, context interface{}) []byte {
+	e, _ := json.Marshal(Rs(id, method, params, context))
 	return e
 }
 

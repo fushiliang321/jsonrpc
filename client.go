@@ -6,8 +6,8 @@ import (
 )
 
 type ClientInterface interface {
-	Call(string, interface{}, interface{}, bool) error
-	BatchAppend(string, interface{}, interface{}, bool) *error
+	Call(string, interface{}, interface{}, bool, interface{}) error
+	BatchAppend(string, interface{}, interface{}, bool, interface{}) *error
 	BatchCall() error
 }
 
