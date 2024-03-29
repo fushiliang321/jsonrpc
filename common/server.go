@@ -28,7 +28,7 @@ type Server struct {
 	Sm sync.Map
 }
 
-func (svr *Server) Register(s interface{}) error {
+func (svr *Server) Register(s any) error {
 	svc := new(Service)
 	svc.V = reflect.ValueOf(s)
 	svc.T = reflect.TypeOf(s)
@@ -104,26 +104,22 @@ func (svr *Server) Handler(b []byte) []byte {
 	if err != nil {
 		return jsonE(nil, JsonRpc, ParseError)
 	}
-	var res interface{}
-	if reflect.ValueOf(data).Kind() == reflect.Slice {
-		var resList []interface{}
-		for _, v := range data.([]interface{}) {
-			r := svr.SingleHandler(v.(map[string]interface{}))
-			resList = append(resList, r)
+	var res any
+	switch data := data.(type) {
+	case []any:
+		for i, v := range data {
+			data[i] = svr.SingleHandler(v.(map[string]any))
 		}
-		res = resList
-	} else if reflect.ValueOf(data).Kind() == reflect.Map {
-		r := svr.SingleHandler(data.(map[string]interface{}))
-		res = r
-	} else {
-		return jsonE(nil, JsonRpc, InvalidRequest)
+		res = data
+	case map[string]any:
+		res = svr.SingleHandler(data)
 	}
 
 	response, _ := json.Marshal(res)
 	return response
 }
 
-func (svr *Server) SingleHandler(jsonMap map[string]interface{}) (res interface{}) {
+func (svr *Server) SingleHandler(jsonMap map[string]any) (res any) {
 	id, jsonRpc, method, paramsData, errCode := ParseSingleRequestBody(jsonMap)
 	defer func() {
 		if err := recover(); err != nil {
@@ -134,9 +130,6 @@ func (svr *Server) SingleHandler(jsonMap map[string]interface{}) (res interface{
 	if errCode != WithoutError {
 		return E(id, jsonRpc, errCode)
 	}
-	//if jsonRpc != JsonRpc {
-	//	return E(id, jsonRpc, InvalidRequest)
-	//}
 	sName, mName, err := ParseRequestMethod(method)
 	if err != nil {
 		return E(id, jsonRpc, MethodNotFound)
@@ -176,21 +169,18 @@ func (svr *Server) SingleHandler(jsonMap map[string]interface{}) (res interface{
 			if !ok {
 				return
 			}
-			switch res.(type) {
+			switch _res := res.(type) {
 			case ErrorResponse:
-				_res := res.(ErrorResponse)
 				_res.Error.Data = internalErrorData
 				res = _res
 			case ErrorNotifyResponse:
-				_res := res.(ErrorNotifyResponse)
 				_res.Error.Data = internalErrorData
 				res = _res
 			}
 			return
 		}
 	}
-	result := r[0]
-	return S(id, jsonRpc, result.Elem().Interface())
+	return S(id, jsonRpc, r[0].Elem().Interface())
 }
 
 func lineToHump(in string) string {
@@ -202,8 +192,10 @@ func lineToHump(in string) string {
 }
 
 func Capitalize(str string) string {
-	var upperStr string
-	vv := []rune(str)
+	var (
+		upperStr string
+		vv       = []rune(str)
+	)
 	for i := 0; i < len(vv); i++ {
 		if i == 0 {
 			if vv[i] >= 97 && vv[i] <= 122 {

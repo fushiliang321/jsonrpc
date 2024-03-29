@@ -1,10 +1,10 @@
 package client
 
 import (
-	"fmt"
 	"github.com/fushiliang321/jsonrpc/common"
 	"net"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -14,14 +14,14 @@ type Tcp struct {
 	RequestList []*common.SingleRequest
 }
 
-func (p *Tcp) BatchAppend(method string, params interface{}, result interface{}, isNotify bool, context interface{}) *error {
+func (p *Tcp) BatchAppend(method string, params any, result any, isNotify bool, context any) *error {
 	singleRequest := &common.SingleRequest{
-		method,
-		params,
-		result,
-		new(error),
-		isNotify,
-		context,
+		Method:   method,
+		Params:   params,
+		Result:   result,
+		Error:    new(error),
+		IsNotify: isNotify,
+		Context:  context,
 	}
 	p.RequestList = append(p.RequestList, singleRequest)
 	return singleRequest.Error
@@ -30,12 +30,10 @@ func (p *Tcp) BatchAppend(method string, params interface{}, result interface{},
 func (p *Tcp) BatchCall() error {
 	var (
 		err error
-		br  []interface{}
+		br  []any
 	)
 	for _, v := range p.RequestList {
-		var (
-			req interface{}
-		)
+		var req any
 		if v.IsNotify == true {
 			req = common.Rs(nil, v.Method, v.Params, v.Context)
 		} else {
@@ -49,23 +47,22 @@ func (p *Tcp) BatchCall() error {
 	return err
 }
 
-func (p *Tcp) Call(method string, params interface{}, result interface{}, isNotify bool, context interface{}) error {
-	var (
-		err error
-		req []byte
-	)
+func (p *Tcp) Call(method string, params any, result any, isNotify bool, context any) error {
+	var req []byte
 	if isNotify {
 		req = common.JsonRs(nil, method, params, context)
 	} else {
 		req = common.JsonRs(strconv.FormatInt(time.Now().Unix(), 10), method, params, context)
 	}
-	err = p.handleFunc(req, result)
-	return err
+	return p.handleFunc(req, result)
 }
 
-func (p *Tcp) handleFunc(b []byte, result interface{}) error {
-	var addr = fmt.Sprintf("%s:%s", p.Ip, p.Port)
-	conn, err := net.Dial("tcp", addr)
+func (p *Tcp) handleFunc(b []byte, result any) error {
+	var addrBuilder strings.Builder
+	addrBuilder.WriteString(p.Ip)
+	addrBuilder.WriteByte(':')
+	addrBuilder.WriteString(p.Port)
+	conn, err := net.Dial("tcp", addrBuilder.String())
 	if err != nil {
 		return err
 	}

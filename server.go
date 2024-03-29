@@ -7,17 +7,16 @@ import (
 
 type ServerInterface interface {
 	Start()
-	Register(s interface{})
+	Register(s any)
 	SetBuffer(bs int)
 }
 
 func NewServer(protocol string, ip string, port string) (ServerInterface, error) {
-	var err error
 	switch protocol {
 	case "http":
-		return server.NewHttpServer(ip, port), err
+		return server.NewHttpServer(ip, port), nil
 	case "tcp":
-		return server.NewTcpServer(ip, port), err
+		return server.NewTcpServer(ip, port), nil
 	}
 	return nil, errors.New("The protocol can not be supported")
 }

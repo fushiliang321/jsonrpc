@@ -1,10 +1,10 @@
 package server
 
 import (
-	"fmt"
 	"github.com/fushiliang321/jsonrpc/common"
-	"io/ioutil"
+	"io"
 	"net/http"
+	"strings"
 )
 
 type Http struct {
@@ -26,11 +26,14 @@ func NewHttpServer(ip string, port string) *Http {
 func (p *Http) Start() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", p.handleFunc)
-	var url = fmt.Sprintf("%s:%s", p.Ip, p.Port)
-	http.ListenAndServe(url, mux)
+	var addrBuilder strings.Builder
+	addrBuilder.WriteString(p.Ip)
+	addrBuilder.WriteByte(':')
+	addrBuilder.WriteString(p.Port)
+	http.ListenAndServe(addrBuilder.String(), mux)
 }
 
-func (p *Http) Register(s interface{}) {
+func (p *Http) Register(s any) {
 	p.Server.Register(s)
 }
 
@@ -44,7 +47,7 @@ func (p *Http) handleFunc(w http.ResponseWriter, r *http.Request) {
 		data []byte
 	)
 	w.Header().Set("Content-Type", "application/json")
-	if data, err = ioutil.ReadAll(r.Body); err != nil {
+	if data, err = io.ReadAll(r.Body); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

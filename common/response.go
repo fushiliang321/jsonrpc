@@ -8,20 +8,20 @@ import (
 )
 
 type SuccessResponse struct {
-	Id      string      `json:"id"`
-	JsonRpc string      `json:"jsonrpc"`
-	Result  interface{} `json:"result"`
+	Id      string `json:"id"`
+	JsonRpc string `json:"jsonrpc"`
+	Result  any    `json:"result"`
 }
 
 type SuccessNotifyResponse struct {
-	JsonRpc string      `json:"jsonrpc"`
-	Result  interface{} `json:"result"`
+	JsonRpc string `json:"jsonrpc"`
+	Result  any    `json:"result"`
 }
 
 type Error struct {
-	Code    int         `json:"code"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data"`
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Data    any    `json:"data"`
 }
 
 type ErrorResponse struct {
@@ -35,13 +35,13 @@ type ErrorNotifyResponse struct {
 	Error   Error  `json:"error"`
 }
 
-func E(id interface{}, jsonRpc string, errCode int) interface{} {
+func E(id any, jsonRpc string, errCode int) any {
 	e := Error{
 		errCode,
 		CodeMap[errCode],
 		nil,
 	}
-	var res interface{}
+	var res any
 	if id != nil {
 		res = ErrorResponse{id.(string), jsonRpc, e}
 	} else {
@@ -50,8 +50,8 @@ func E(id interface{}, jsonRpc string, errCode int) interface{} {
 	return res
 }
 
-func S(id interface{}, jsonRpc string, result interface{}) interface{} {
-	var res interface{}
+func S(id any, jsonRpc string, result any) any {
+	var res any
 	if id != nil {
 		res = SuccessResponse{id.(string), jsonRpc, result}
 	} else {
@@ -60,17 +60,17 @@ func S(id interface{}, jsonRpc string, result interface{}) interface{} {
 	return res
 }
 
-func jsonE(id interface{}, jsonRpc string, errCode int) []byte {
+func jsonE(id any, jsonRpc string, errCode int) []byte {
 	e, _ := json.Marshal(E(id, jsonRpc, errCode))
 	return e
 }
 
-func jsonS(id interface{}, jsonRpc string, result interface{}) []byte {
+func jsonS(id any, jsonRpc string, result any) []byte {
 	s, _ := json.Marshal(S(id, jsonRpc, result))
 	return s
 }
 
-func GetSingleResponse(jsonData map[string]interface{}, result interface{}) error {
+func GetSingleResponse(jsonData map[string]any, result any) error {
 	var (
 		err error
 	)
@@ -88,23 +88,25 @@ func GetSingleResponse(jsonData map[string]interface{}, result interface{}) erro
 	return err
 }
 
-func GetResult(b []byte, result interface{}) error {
+func GetResult(b []byte, result any) error {
 	var (
 		err      error
-		jsonData interface{}
+		jsonData any
 	)
 	err = json.Unmarshal(b, &jsonData)
 	if err != nil {
 		Debug(err)
 	}
-	if reflect.ValueOf(jsonData).Kind() == reflect.Map {
-		err = GetSingleResponse(jsonData.(map[string]interface{}), result)
+
+	switch reflect.ValueOf(jsonData).Kind() {
+	case reflect.Map:
+		err = GetSingleResponse(jsonData.(map[string]any), result)
 		if err != nil {
 			return err
 		}
-	} else if reflect.ValueOf(jsonData).Kind() == reflect.Slice {
-		for k, v := range jsonData.([]interface{}) {
-			err = GetSingleResponse(v.(map[string]interface{}), (result.([]*SingleRequest)[k].Result))
+	case reflect.Slice:
+		for k, v := range jsonData.([]any) {
+			err = GetSingleResponse(v.(map[string]any), result.([]*SingleRequest)[k].Result)
 			if err != nil {
 				*(result.([]*SingleRequest)[k].Error) = err
 			}
@@ -113,9 +115,9 @@ func GetResult(b []byte, result interface{}) error {
 	return nil
 }
 
-func ParseResponseBody(b []byte) (interface{}, error) {
+func ParseResponseBody(b []byte) (any, error) {
 	var err error
-	var jsonData interface{}
+	var jsonData any
 	err = json.Unmarshal(b, &jsonData)
 	if err != nil {
 		Debug(err)

@@ -39,7 +39,7 @@ func (p *Tcp) Start() {
 	}
 }
 
-func (p *Tcp) Register(s interface{}) {
+func (p *Tcp) Register(s any) {
 	p.Server.Register(s)
 }
 

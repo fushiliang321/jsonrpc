@@ -6,24 +6,23 @@ import (
 )
 
 type ClientInterface interface {
-	Call(string, interface{}, interface{}, bool, interface{}) error
-	BatchAppend(string, interface{}, interface{}, bool, interface{}) *error
+	Call(string, any, any, bool, any) error
+	BatchAppend(string, any, any, bool, any) *error
 	BatchCall() error
 }
 
 func NewClient(protocol string, ip string, port string) (ClientInterface, error) {
-	var err error
 	switch protocol {
 	case "http":
 		return &client.Http{
 			Ip:   ip,
 			Port: port,
-		}, err
+		}, nil
 	case "tcp":
 		return &client.Tcp{
 			Ip:   ip,
 			Port: port,
-		}, err
+		}, nil
 	}
 	return nil, errors.New("The protocol can not be supported")
 }

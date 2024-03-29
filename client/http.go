@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/fushiliang321/jsonrpc/common"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -16,14 +16,14 @@ type Http struct {
 	RequestList []*common.SingleRequest
 }
 
-func (p *Http) BatchAppend(method string, params interface{}, result interface{}, isNotify bool, context interface{}) *error {
+func (p *Http) BatchAppend(method string, params any, result any, isNotify bool, context any) *error {
 	singleRequest := &common.SingleRequest{
-		method,
-		params,
-		result,
-		new(error),
-		isNotify,
-		context,
+		Method:   method,
+		Params:   params,
+		Result:   result,
+		Error:    new(error),
+		IsNotify: isNotify,
+		Context:  context,
 	}
 	p.RequestList = append(p.RequestList, singleRequest)
 	return singleRequest.Error
@@ -32,11 +32,11 @@ func (p *Http) BatchAppend(method string, params interface{}, result interface{}
 func (p *Http) BatchCall() error {
 	var (
 		err error
-		br  []interface{}
+		br  []any
 	)
 	for _, v := range p.RequestList {
 		var (
-			req interface{}
+			req any
 		)
 		if v.IsNotify == true {
 			req = common.Rs(nil, v.Method, v.Params, v.Context)
@@ -51,7 +51,7 @@ func (p *Http) BatchCall() error {
 	return err
 }
 
-func (p *Http) Call(method string, params interface{}, result interface{}, isNotify bool, context interface{}) error {
+func (p *Http) Call(method string, params any, result any, isNotify bool, context any) error {
 	var (
 		err error
 		req []byte
@@ -65,14 +65,14 @@ func (p *Http) Call(method string, params interface{}, result interface{}, isNot
 	return err
 }
 
-func (p *Http) handleFunc(b []byte, result interface{}) error {
+func (p *Http) handleFunc(b []byte, result any) error {
 	var url = fmt.Sprintf("http://%s:%s", p.Ip, p.Port)
 	resp, err := http.Post(url, "application/json", bytes.NewReader(b))
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}

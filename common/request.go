@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/goinggo/mapstructure"
 	"reflect"
-	"strings"
 )
 
 const (
@@ -23,77 +22,85 @@ var RequiredFields = map[string]string{
 
 type SingleRequest struct {
 	Method   string
-	Params   interface{}
-	Result   interface{}
+	Params   any
+	Result   any
 	Error    *error
 	IsNotify bool
-	Context  interface{}
+	Context  any
 }
 
 type Request struct {
-	Id      string      `json:"id"`
-	JsonRpc string      `json:"jsonrpc"`
-	Method  string      `json:"method"`
-	Params  interface{} `json:"params"`
-	Context interface{} `json:"context,omitempty"`
+	Id      string `json:"id"`
+	JsonRpc string `json:"jsonrpc"`
+	Method  string `json:"method"`
+	Params  any    `json:"params"`
+	Context any    `json:"context,omitempty"`
 }
 
 type NotifyRequest struct {
-	JsonRpc string      `json:"jsonrpc"`
-	Method  string      `json:"method"`
-	Params  interface{} `json:"params"`
-	Context interface{} `json:"context,omitempty"`
+	JsonRpc string `json:"jsonrpc"`
+	Method  string `json:"method"`
+	Params  any    `json:"params"`
+	Context any    `json:"context,omitempty"`
 }
 
-func GetRequestBody(b []byte) interface{} {
+func GetRequestBody(b []byte) any {
 	st := GetRequestStruct(b)
 	GetStructFromJson(b, &st)
 	return st
 }
 
-func GetRequestParams(b []byte, params interface{}) error {
+func GetRequestParams(b []byte, params any) error {
 	Debug(reflect.TypeOf(params))
 	GetStructFromJson(b, params)
 	return errors.New("test")
 }
 
+func singleIndex(s *string, substr string) int {
+	var (
+		index = -1
+		sLen  = len(*s)
+	)
+
+	for i := 0; i < sLen; i++ {
+		if (*s)[i] == substr[0] {
+			if index > -1 {
+				return -1
+			}
+			index = i
+		}
+	}
+	return index
+}
+
 func ParseRequestMethod(method string) (sName string, mName string, err error) {
 	var (
-		m  string
-		sp int
+		m     string
+		sp    int
+		first = method[0:1]
 	)
-	first := method[0:1]
+
 	if first == "." || first == "/" {
 		method = method[1:]
 	}
-	if strings.Count(method, ".") != 1 && strings.Count(method, "/") != 1 {
-		m = fmt.Sprintf("rpc: method request ill-formed: %s; need x.y or x/y", method)
-		Debug(m)
-		return sName, mName, errors.New(m)
-	}
-	if strings.Count(method, ".") == 1 {
-		sp = strings.LastIndex(method, ".")
-		if sp < 0 {
+
+	sp = singleIndex(&method, ".")
+	if sp == -1 {
+		sp = singleIndex(&method, "/")
+		if sp == -1 {
 			m = fmt.Sprintf("rpc: method request ill-formed: %s; need x.y or x/y", method)
+			Debug(m)
 			return sName, mName, errors.New(m)
 		}
-
-		sName = method[:sp]
-		mName = method[sp+1:]
-	} else if strings.Count(method, "/") == 1 {
-		sp = strings.LastIndex(method, "/")
-		if sp < 0 {
-			m = fmt.Sprintf("rpc: method request ill-formed: %s; need x.y or x/y", method)
-			return sName, mName, errors.New(m)
-		}
-
-		sName = method[:sp]
-		mName = method[sp+1:]
 	}
+
+	sName = method[:sp]
+	mName = method[sp+1:]
+
 	return sName, mName, err
 }
 
-func FilterRequestBody(jsonMap map[string]interface{}) map[string]interface{} {
+func FilterRequestBody(jsonMap map[string]any) map[string]any {
 	for k, _ := range jsonMap {
 		if _, ok := RequiredFields[k]; !ok {
 			delete(jsonMap, k)
@@ -102,7 +109,7 @@ func FilterRequestBody(jsonMap map[string]interface{}) map[string]interface{} {
 	return jsonMap
 }
 
-func ParseSingleRequestBody(jsonMap map[string]interface{}) (id interface{}, jsonrpc string, method string, params interface{}, errCode int) {
+func ParseSingleRequestBody(jsonMap map[string]any) (id any, jsonrpc string, method string, params any, errCode int) {
 	jsonMap = FilterRequestBody(jsonMap)
 	if _, ok := jsonMap["id"]; ok != true {
 		st := NotifyRequest{}
@@ -121,9 +128,9 @@ func ParseSingleRequestBody(jsonMap map[string]interface{}) (id interface{}, jso
 	}
 }
 
-func ParseRequestBody(b []byte) (interface{}, error) {
+func ParseRequestBody(b []byte) (any, error) {
 	var err error
-	var jsonData interface{}
+	var jsonData any
 	err = json.Unmarshal(b, &jsonData)
 	if err != nil {
 		Debug(err)
@@ -131,15 +138,15 @@ func ParseRequestBody(b []byte) (interface{}, error) {
 	return jsonData, err
 }
 
-func GetRequestStruct(jsonMap interface{}) interface{} {
-	if _, ok := jsonMap.(map[string]interface{})["id"]; ok != true {
+func GetRequestStruct(jsonMap any) any {
+	if _, ok := jsonMap.(map[string]any)["id"]; ok != true {
 		return NotifyRequest{}
 	} else {
 		return Request{}
 	}
 }
 
-func GetStructFromJson(d []byte, s interface{}) error {
+func GetStructFromJson(d []byte, s any) error {
 	var (
 		m   string
 		err error
@@ -150,7 +157,7 @@ func GetStructFromJson(d []byte, s interface{}) error {
 		return errors.New(m)
 	}
 
-	var jsonData interface{}
+	var jsonData any
 	err = json.Unmarshal(d, &jsonData)
 	if err != nil {
 		Debug(err)
@@ -160,51 +167,35 @@ func GetStructFromJson(d []byte, s interface{}) error {
 	return nil
 }
 
-func GetStruct(d interface{}, s interface{}) error {
+func GetStruct(d any, s any) error {
 	var (
 		m string
 		t reflect.Type
 	)
-	if reflect.TypeOf(s).Kind() != reflect.Ptr {
+	typeOf := reflect.TypeOf(s)
+	if typeOf.Kind() != reflect.Ptr {
 		m = fmt.Sprintf("reflect: Elem of invalid type %s, need reflect.Ptr", reflect.TypeOf(s))
 		Debug(m)
 		return errors.New(m)
 	}
-	t = reflect.TypeOf(s).Elem()
-	var jsonMap = make(map[string]interface{})
-	switch reflect.TypeOf(d).Kind() {
-	case reflect.Map:
-		//if t.NumField() != len(d.(map[string]interface{})) {
-		//	m = fmt.Sprintf("json: The number of parameters does not match")
-		//	Debug(m)
-		//	return errors.New(m)
-		//}
-		//for k := 0; k < t.NumField(); k++ {
-		//	 lk :=t.Field(k).Tag.Get("json")
-		//	if lk=="" {
-		//		lk = t.Field(k).Name
-		//	}
-		//	if _, ok := d.(map[string]interface{})[lk]; ok != true {
-		//		m = fmt.Sprintf("json: can not find field \"%s\"", lk)
-		//		Debug(m)
-		//		return errors.New(m)
-		//	}
-		//}
-		jsonMap = d.(map[string]interface{})
-		break
-	case reflect.Slice:
-		if t.NumField() != reflect.ValueOf(d).Len() {
+	t = typeOf.Elem()
+	var jsonMap = make(map[string]any)
+	switch d := d.(type) {
+	case map[string]any:
+		jsonMap = d
+
+	case []any:
+		num := t.NumField()
+		if num != len(d) {
 			m = fmt.Sprintf("json: The number of parameters does not match")
 			Debug(m)
 			return errors.New(m)
 		}
-		for k := 0; k < t.NumField(); k++ {
-			jsonMap[t.Field(k).Name] = reflect.ValueOf(d).Index(k).Interface()
+		for k := 0; k < num; k++ {
+			jsonMap[t.Field(k).Name] = d[k]
 		}
-		break
-	default:
-		break
 	}
+
 	if err := mapstructure.Decode(jsonMap, s); err != nil {
 		Debug(err)
 		return err
@@ -212,8 +203,8 @@ func GetStruct(d interface{}, s interface{}) error {
 	return nil
 }
 
-func Rs(id interface{}, method string, params interface{}, context interface{}) interface{} {
-	var req interface{}
+func Rs(id any, method string, params any, context any) any {
+	var req any
 	if id != nil {
 		req = Request{id.(string), JsonRpc, method, params, context}
 	} else {
@@ -222,12 +213,12 @@ func Rs(id interface{}, method string, params interface{}, context interface{}) 
 	return req
 }
 
-func JsonRs(id interface{}, method string, params interface{}, context interface{}) []byte {
+func JsonRs(id any, method string, params any, context any) []byte {
 	e, _ := json.Marshal(Rs(id, method, params, context))
 	return e
 }
 
-func JsonBatchRs(data []interface{}) []byte {
+func JsonBatchRs(data []any) []byte {
 	e, _ := json.Marshal(data)
 	return e
 }
