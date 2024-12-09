@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"github.com/fushiliang321/jsonrpc/common"
 	"net"
 	"strconv"
@@ -11,23 +12,24 @@ import (
 type Tcp struct {
 	Ip          string
 	Port        string
+	Dialer      *net.Dialer
 	RequestList []*common.SingleRequest
 }
 
-func (p *Tcp) BatchAppend(method string, params any, result any, isNotify bool, context any) *error {
+func (p *Tcp) BatchAppend(method string, params any, result any, isNotify bool, contextData any) *error {
 	singleRequest := &common.SingleRequest{
 		Method:   method,
 		Params:   params,
 		Result:   result,
 		Error:    new(error),
 		IsNotify: isNotify,
-		Context:  context,
+		Context:  contextData,
 	}
 	p.RequestList = append(p.RequestList, singleRequest)
 	return singleRequest.Error
 }
 
-func (p *Tcp) BatchCall() error {
+func (p *Tcp) BatchCall(ctx context.Context) error {
 	var (
 		err error
 		br  []any
@@ -42,27 +44,27 @@ func (p *Tcp) BatchCall() error {
 		br = append(br, req)
 	}
 	bReq := common.JsonBatchRs(br)
-	err = p.handleFunc(bReq, p.RequestList)
+	err = p.handleFunc(ctx, bReq, p.RequestList)
 	p.RequestList = make([]*common.SingleRequest, 0)
 	return err
 }
 
-func (p *Tcp) Call(method string, params any, result any, isNotify bool, context any) error {
+func (p *Tcp) Call(ctx context.Context, method string, params any, result any, isNotify bool, contextData any) error {
 	var req []byte
 	if isNotify {
-		req = common.JsonRs(nil, method, params, context)
+		req = common.JsonRs(nil, method, params, contextData)
 	} else {
-		req = common.JsonRs(strconv.FormatInt(time.Now().Unix(), 10), method, params, context)
+		req = common.JsonRs(strconv.FormatInt(time.Now().Unix(), 10), method, params, contextData)
 	}
-	return p.handleFunc(req, result)
+	return p.handleFunc(ctx, req, result)
 }
 
-func (p *Tcp) handleFunc(b []byte, result any) error {
+func (p *Tcp) handleFunc(ctx context.Context, b []byte, result any) error {
 	var addrBuilder strings.Builder
 	addrBuilder.WriteString(p.Ip)
 	addrBuilder.WriteByte(':')
 	addrBuilder.WriteString(p.Port)
-	conn, err := net.Dial("tcp", addrBuilder.String())
+	conn, err := p.Dialer.DialContext(ctx, "tcp", addrBuilder.String())
 	if err != nil {
 		return err
 	}
