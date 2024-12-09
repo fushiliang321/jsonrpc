@@ -37,9 +37,7 @@ func (p *Http) BatchCall(ctx context.Context) error {
 		br  []any
 	)
 	for _, v := range p.RequestList {
-		var (
-			req any
-		)
+		var req any
 		if v.IsNotify == true {
 			req = common.Rs(nil, v.Method, v.Params, v.Context)
 		} else {
@@ -68,8 +66,10 @@ func (p *Http) Call(ctx context.Context, method string, params any, result any, 
 }
 
 func (p *Http) handleFunc(ctx context.Context, b []byte, result any) error {
-	var url = fmt.Sprintf("http://%s:%s", p.Ip, p.Port)
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(b))
+	var (
+		url      = fmt.Sprintf("http://%s:%s", p.Ip, p.Port)
+		req, err = http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(b))
+	)
 	if err != nil {
 		return err
 	}

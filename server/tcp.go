@@ -27,8 +27,7 @@ func NewTcpServer(ip string, port string) *Tcp {
 }
 
 func (p *Tcp) Start() {
-	var addr = fmt.Sprintf("%s:%s", p.Ip, p.Port)
-	listener, _ := net.Listen("tcp", addr)
+	listener, _ := net.Listen("tcp", fmt.Sprintf("%s:%s", p.Ip, p.Port))
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
@@ -49,11 +48,10 @@ func (p *Tcp) SetBuffer(bs int) {
 
 func (p *Tcp) handleFunc(conn net.Conn) {
 	var (
-		err error
+		buf    = make([]byte, p.BufferSize)
+		n, err = conn.Read(buf)
 	)
 
-	var buf = make([]byte, p.BufferSize)
-	n, err := conn.Read(buf)
 	if err != nil {
 		common.Debug(err.Error())
 	}

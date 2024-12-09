@@ -54,12 +54,12 @@ func RegisterMethods(s reflect.Type) map[string]*Method {
 
 func RegisterMethod(rm reflect.Method) *Method {
 	var (
-		msg string
-		p   reflect.Type
+		msg   string
+		p     reflect.Type
+		rmt   = rm.Type
+		rmn   = rm.Name
+		numIn = rm.Type.NumIn()
 	)
-	rmt := rm.Type
-	rmn := rm.Name
-	numIn := rm.Type.NumIn()
 	if numIn > 2 {
 		msg = fmt.Sprintf("RegisterMethod: method %q has %d input parameters; needs exactly three", rmn, rmt.NumIn())
 		Debug(msg)

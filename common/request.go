@@ -101,7 +101,7 @@ func ParseRequestMethod(method string) (sName string, mName string, err error) {
 }
 
 func FilterRequestBody(jsonMap map[string]any) map[string]any {
-	for k, _ := range jsonMap {
+	for k := range jsonMap {
 		if _, ok := RequiredFields[k]; !ok {
 			delete(jsonMap, k)
 		}
@@ -111,16 +111,17 @@ func FilterRequestBody(jsonMap map[string]any) map[string]any {
 
 func ParseSingleRequestBody(jsonMap map[string]any) (id any, jsonrpc string, method string, params any, errCode int) {
 	jsonMap = FilterRequestBody(jsonMap)
+	var err error
 	if _, ok := jsonMap["id"]; ok != true {
 		st := NotifyRequest{}
-		err := GetStruct(jsonMap, &st)
+		err = GetStruct(jsonMap, &st)
 		if err != nil {
 			errCode = InvalidRequest
 		}
 		return nil, st.JsonRpc, st.Method, st.Params, errCode
 	} else {
 		st := Request{}
-		err := GetStruct(jsonMap, &st)
+		err = GetStruct(jsonMap, &st)
 		if err != nil {
 			errCode = InvalidRequest
 		}
@@ -129,9 +130,10 @@ func ParseSingleRequestBody(jsonMap map[string]any) (id any, jsonrpc string, met
 }
 
 func ParseRequestBody(b []byte) (any, error) {
-	var err error
-	var jsonData any
-	err = json.Unmarshal(b, &jsonData)
+	var (
+		jsonData any
+		err      = json.Unmarshal(b, &jsonData)
+	)
 	if err != nil {
 		Debug(err)
 	}
@@ -169,10 +171,10 @@ func GetStructFromJson(d []byte, s any) error {
 
 func GetStruct(d any, s any) error {
 	var (
-		m string
-		t reflect.Type
+		m      string
+		t      reflect.Type
+		typeOf = reflect.TypeOf(s)
 	)
-	typeOf := reflect.TypeOf(s)
 	if typeOf.Kind() != reflect.Ptr {
 		m = fmt.Sprintf("reflect: Elem of invalid type %s, need reflect.Ptr", reflect.TypeOf(s))
 		Debug(m)

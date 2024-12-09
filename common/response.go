@@ -36,12 +36,14 @@ type ErrorNotifyResponse struct {
 }
 
 func E(id any, jsonRpc string, errCode int) any {
-	e := Error{
-		errCode,
-		CodeMap[errCode],
-		nil,
-	}
-	var res any
+	var (
+		res any
+		e   = Error{
+			errCode,
+			CodeMap[errCode],
+			nil,
+		}
+	)
 	if id != nil {
 		res = ErrorResponse{id.(string), jsonRpc, e}
 	} else {
@@ -72,9 +74,9 @@ func jsonS(id any, jsonRpc string, result any) []byte {
 
 func GetSingleResponse(jsonData map[string]any, result any) error {
 	var (
-		err error
+		err        error
+		emData, ok = jsonData["error"]
 	)
-	emData, ok := jsonData["error"]
 	if ok {
 		resErr := new(Error)
 		err = GetStruct(emData, resErr)
@@ -90,10 +92,9 @@ func GetSingleResponse(jsonData map[string]any, result any) error {
 
 func GetResult(b []byte, result any) error {
 	var (
-		err      error
 		jsonData any
+		err      = json.Unmarshal(b, &jsonData)
 	)
-	err = json.Unmarshal(b, &jsonData)
 	if err != nil {
 		Debug(err)
 	}
@@ -116,9 +117,10 @@ func GetResult(b []byte, result any) error {
 }
 
 func ParseResponseBody(b []byte) (any, error) {
-	var err error
-	var jsonData any
-	err = json.Unmarshal(b, &jsonData)
+	var (
+		jsonData any
+		err      = json.Unmarshal(b, &jsonData)
+	)
 	if err != nil {
 		Debug(err)
 	}
