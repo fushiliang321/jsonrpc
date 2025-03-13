@@ -31,7 +31,11 @@ func (p *Http) BatchAppend(method string, params any, result any, isNotify bool,
 	return singleRequest.Error
 }
 
-func (p *Http) BatchCall(ctx context.Context) error {
+func (p *Http) BatchCall() error {
+	return p.BatchCallWithContext(nil)
+}
+
+func (p *Http) BatchCallWithContext(ctx context.Context) error {
 	var (
 		err error
 		br  []any
@@ -51,7 +55,11 @@ func (p *Http) BatchCall(ctx context.Context) error {
 	return err
 }
 
-func (p *Http) Call(ctx context.Context, method string, params any, result any, isNotify bool, contextData any) error {
+func (p *Http) Call(method string, params any, result any, isNotify bool, contextData any) error {
+	return p.CallWithContext(nil, method, params, result, isNotify, contextData)
+}
+
+func (p *Http) CallWithContext(ctx context.Context, method string, params any, result any, isNotify bool, contextData any) error {
 	var (
 		err error
 		req []byte
@@ -66,18 +74,21 @@ func (p *Http) Call(ctx context.Context, method string, params any, result any, 
 }
 
 func (p *Http) handleFunc(ctx context.Context, b []byte, result any) error {
-	if ctx == nil {
-		ctx = context.Background()
-	}
 	var (
-		url      = fmt.Sprintf("http://%s:%s", p.Ip, p.Port)
-		req, err = http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(b))
+		url  = fmt.Sprintf("http://%s:%s", p.Ip, p.Port)
+		resp *http.Response
+		err  error
 	)
-	if err != nil {
-		return err
+	if ctx == nil {
+		resp, err = p.Client.Post(url, "application/json", bytes.NewReader(b))
+	} else {
+		req, e := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(b))
+		if e != nil {
+			return e
+		}
+		req.Header.Set("Content-Type", "application/json")
+		resp, err = p.Client.Do(req)
 	}
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := p.Client.Do(req)
 	if err != nil {
 		return err
 	}

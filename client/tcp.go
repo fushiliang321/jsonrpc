@@ -29,7 +29,10 @@ func (p *Tcp) BatchAppend(method string, params any, result any, isNotify bool, 
 	return singleRequest.Error
 }
 
-func (p *Tcp) BatchCall(ctx context.Context) error {
+func (p *Tcp) BatchCall() error {
+	return p.BatchCallWithContext(nil)
+}
+func (p *Tcp) BatchCallWithContext(ctx context.Context) error {
 	var (
 		err error
 		br  []any
@@ -49,7 +52,11 @@ func (p *Tcp) BatchCall(ctx context.Context) error {
 	return err
 }
 
-func (p *Tcp) Call(ctx context.Context, method string, params any, result any, isNotify bool, contextData any) error {
+func (p *Tcp) Call(method string, params any, result any, isNotify bool, contextData any) error {
+	return p.CallWithContext(nil, method, params, result, isNotify, contextData)
+}
+
+func (p *Tcp) CallWithContext(ctx context.Context, method string, params any, result any, isNotify bool, contextData any) error {
 	var req []byte
 	if isNotify {
 		req = common.JsonRs(nil, method, params, contextData)
@@ -60,14 +67,19 @@ func (p *Tcp) Call(ctx context.Context, method string, params any, result any, i
 }
 
 func (p *Tcp) handleFunc(ctx context.Context, b []byte, result any) error {
-	var addrBuilder strings.Builder
+	var (
+		addrBuilder strings.Builder
+		conn        net.Conn
+		err         error
+	)
 	addrBuilder.WriteString(p.Ip)
 	addrBuilder.WriteByte(':')
 	addrBuilder.WriteString(p.Port)
 	if ctx == nil {
-		ctx = context.Background()
+		conn, err = p.Dialer.Dial("tcp", addrBuilder.String())
+	} else {
+		conn, err = p.Dialer.DialContext(ctx, "tcp", addrBuilder.String())
 	}
-	conn, err := p.Dialer.DialContext(ctx, "tcp", addrBuilder.String())
 	if err != nil {
 		return err
 	}

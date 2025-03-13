@@ -9,9 +9,11 @@ import (
 )
 
 type ClientInterface interface {
-	Call(context.Context, string, any, any, bool, any) error
+	Call(string, any, any, bool, any) error
+	CallWithContext(context.Context, string, any, any, bool, any) error
 	BatchAppend(string, any, any, bool, any) *error
-	BatchCall(context.Context) error
+	BatchCall() error
+	BatchCallWithContext(context.Context) error
 }
 
 func NewClient(protocol string, ip string, port string) (ClientInterface, error) {
