@@ -66,6 +66,9 @@ func (p *Http) Call(ctx context.Context, method string, params any, result any, 
 }
 
 func (p *Http) handleFunc(ctx context.Context, b []byte, result any) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	var (
 		url      = fmt.Sprintf("http://%s:%s", p.Ip, p.Port)
 		req, err = http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(b))

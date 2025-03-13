@@ -64,6 +64,9 @@ func (p *Tcp) handleFunc(ctx context.Context, b []byte, result any) error {
 	addrBuilder.WriteString(p.Ip)
 	addrBuilder.WriteByte(':')
 	addrBuilder.WriteString(p.Port)
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	conn, err := p.Dialer.DialContext(ctx, "tcp", addrBuilder.String())
 	if err != nil {
 		return err
